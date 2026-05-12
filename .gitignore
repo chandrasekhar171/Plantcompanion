@@ -1,0 +1,4 @@
+Dont upload to Netlify/
+.claude/
+.DS_Store
+Thumbs.db

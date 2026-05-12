@@ -1,0 +1,2666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Plant Companion" />
+  <meta name="theme-color" content="#7a9e76" />
+  <link rel="manifest" href="manifest.json" />
+  <title>Plant Companion</title>
+
+  <style>
+    /* ── Display font ──────────────────────────────────────────── */
+    @font-face {
+      font-family: 'Righteous';
+      src: url('righteous.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    /* ── Colour tokens ─────────────────────────────────────────── */
+    :root {
+      /* Gradient — every page inherits these automatically via html::before */
+      --grad-top:     #eaf0e8;   /* light sage — top of every screen   */
+      --grad-bottom:  #7a9e76;   /* mid green  — bottom of every screen */
+
+      --bg:           var(--grad-top);  /* kept for any direct bg references */
+      --surface:      #eaf0e8;   /* card/input surface colour          */
+
+      /* rgba shadows adapt correctly over both the light top and dark
+         bottom of the gradient — a fixed hex value would invert depth
+         at one end of the scroll */
+      --shadow-dark:  rgba(30, 55, 28, 0.22);
+      --shadow-light: rgba(255, 255, 255, 0.80);
+
+      --green-mid:    #7a9e76;   /* primary sage green                 */
+      --green-deep:   #4d6b49;   /* darker text / icon green           */
+      --earth:        #c4a882;   /* warm earth accent                  */
+      --text-main:    #3d5239;   /* main body text                     */
+      --text-muted:   #7a8f78;   /* secondary / hint text              */
+      --white:        #ffffff;
+      --radius-card:  18px;
+      --radius-btn:   50px;
+    }
+
+    /* ── Reset & base ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Fixed gradient via pseudo-element — background-attachment:fixed is
+       broken on iOS Safari, so this is the reliable cross-platform approach */
+    html::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: linear-gradient(to bottom, var(--grad-top), var(--grad-bottom));
+    }
+
+    html, body {
+      height: 100%;
+      background: transparent;
+      color: var(--text-main);
+      font-family: 'Righteous', -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   sans-serif;
+      font-size: 17px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Neomorphism helpers ────────────────────────────────────── */
+
+    /* Raised element — lifts off the background */
+    .nm-raised {
+      background: var(--surface);
+      border-radius: var(--radius-card);
+      box-shadow:
+        6px 6px 14px var(--shadow-dark),
+        -6px -6px 14px var(--shadow-light);
+    }
+
+    /* Pressed / inset element — sunken into the background */
+    .nm-inset {
+      background: var(--surface);
+      border-radius: var(--radius-card);
+      box-shadow:
+        inset 4px 4px 10px var(--shadow-dark),
+        inset -4px -4px 10px var(--shadow-light);
+    }
+
+    /* Flat pill button */
+    .nm-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 28px;
+      border: none;
+      border-radius: var(--radius-btn);
+      background: var(--surface);
+      color: var(--green-deep);
+      font-family: 'Righteous', sans-serif;
+      font-size: 16px;
+      font-weight: 400;
+      cursor: pointer;
+      box-shadow:
+        4px 4px 10px var(--shadow-dark),
+        -4px -4px 10px var(--shadow-light);
+      transition: box-shadow 0.15s ease, transform 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .nm-btn:active {
+      box-shadow:
+        inset 3px 3px 8px var(--shadow-dark),
+        inset -3px -3px 8px var(--shadow-light);
+      transform: scale(0.97);
+    }
+
+    /* Primary tinted button */
+    .nm-btn-primary {
+      background: var(--green-mid);
+      color: var(--white);
+      box-shadow:
+        4px 4px 10px #5c7e59,
+        -4px -4px 10px #98be94;
+    }
+
+    .nm-btn-primary:active {
+      box-shadow:
+        inset 3px 3px 8px #5c7e59,
+        inset -3px -3px 8px #98be94;
+    }
+
+    /* Floating action button */
+    .nm-fab {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      background: #ffffff;
+      cursor: pointer;
+      box-shadow:
+        6px 6px 16px rgba(30, 55, 28, 0.35),
+        -4px -4px 10px rgba(255, 255, 255, 0.60);
+      transition: box-shadow 0.15s ease, transform 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .nm-fab:active {
+      transform: scale(0.94);
+      background: #ffffff;
+      box-shadow:
+        inset 4px 4px 10px rgba(30, 55, 28, 0.25),
+        inset -3px -3px 8px rgba(255, 255, 255, 0.80);
+    }
+
+    /* ── App shell ──────────────────────────────────────────────── */
+    #app {
+      max-width: 480px;
+      height: 100%;
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: env(safe-area-inset-top, 0) 0
+               env(safe-area-inset-bottom, 0) 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Top bar ────────────────────────────────────────────────── */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 28px 24px 20px;
+    }
+
+    .app-title {
+      font-size: 36px;
+      font-weight: 400;
+      font-family: 'Righteous', sans-serif;
+      color: var(--green-deep);
+      letter-spacing: 0.5px;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .app-title__inner {
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      min-width: 40px;
+      height: 44px;
+      border: none;
+      background: transparent;
+      color: var(--green-deep);
+      cursor: pointer;
+      border-radius: 50%;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    /* ── Page container ─────────────────────────────────────────── */
+    .page {
+      flex: 1;
+      padding: 8px 20px calc(140px + env(safe-area-inset-bottom, 0px));
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+    }
+
+    /* ── My Plants page ─────────────────────────────────────────── */
+    .page-heading {
+      font-size: 20px;
+      font-weight: 400;
+      font-family: 'Righteous', sans-serif;
+      color: var(--text-main);
+      letter-spacing: 0.3px;
+      margin-bottom: 20px;
+    }
+
+    .plant-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      list-style: none;
+    }
+
+    .plant-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 18px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: transform 0.12s ease;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .plant-card:active {
+      transform: scale(0.98);
+      box-shadow:
+        inset 4px 4px 10px var(--shadow-dark),
+        inset -4px -4px 10px var(--shadow-light);
+    }
+
+    .plant-card__thumb {
+      width: 68px;
+      height: 68px;
+      border-radius: 12px;
+      flex-shrink: 0;
+      background: linear-gradient(145deg, #a8c8a4, var(--green-mid));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .plant-card__thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .plant-card__info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .plant-card__name {
+      font-size: 18px;
+      font-weight: 400;
+      font-family: 'Righteous', sans-serif;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .plant-card__meta {
+      font-size: 14px;
+      line-height: 1.45;
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── FAB anchor ─────────────────────────────────────────────── */
+    .fab-anchor {
+      position: fixed;
+      bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+      right: calc(50% - 240px + 20px); /* aligned to right edge of the 480px max-width column */
+    }
+
+    @media (max-width: 480px) {
+      .fab-anchor {
+        right: 24px;
+      }
+    }
+
+    /* ── Toast notification ─────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--green-deep);
+      color: var(--white);
+      padding: 10px 24px;
+      border-radius: 50px;
+      font-size: 15px;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      white-space: nowrap;
+      z-index: 100;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── View switching ─────────────────────────────────────────── */
+    @keyframes view-fade-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .view        { display: none; }
+    .view.active {
+      display: block;
+      animation: view-fade-in 0.18s ease forwards;
+    }
+
+    /* ── Add Plant form ─────────────────────────────────────────── */
+    .form-field {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #567252;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 10px;
+    }
+
+    .optional-tag {
+      font-size: 11px;
+      font-weight: 500;
+      color: #567252;
+      text-transform: none;
+      letter-spacing: 0;
+      margin-left: 4px;
+    }
+
+    .nm-input,
+    .nm-select {
+      width: 100%;
+      padding: 14px 18px;
+      border: none;
+      border-radius: var(--radius-card);
+      background: var(--surface);
+      color: var(--text-main);
+      font-size: 16px;
+      font-family: inherit;
+      box-shadow:
+        inset 4px 4px 10px var(--shadow-dark),
+        inset -4px -4px 10px var(--shadow-light);
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      display: block;
+    }
+
+    .nm-input::placeholder { color: var(--text-muted); opacity: 1; }
+
+    /* ── Custom age picker ──────────────────────────────────────── */
+    .nm-picker-wrap {
+      position: relative;
+    }
+
+    /* Trigger row — same visual as nm-input (inset) */
+    .nm-picker {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-radius: var(--radius-card);
+      background: var(--surface);
+      color: var(--text-main);
+      font-size: 16px;
+      font-family: inherit;
+      box-shadow:
+        inset 4px 4px 10px var(--shadow-dark),
+        inset -4px -4px 10px var(--shadow-light);
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .nm-picker__caret {
+      color: var(--text-muted);
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+    }
+
+    .nm-picker.open .nm-picker__caret {
+      transform: rotate(180deg);
+    }
+
+    /* Dropdown panel — raised card, absolutely positioned above content below */
+    .nm-picker__panel {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      z-index: 10;
+      border-radius: var(--radius-card);
+      background: var(--surface);
+      box-shadow:
+        6px 6px 14px var(--shadow-dark),
+        -6px -6px 14px var(--shadow-light);
+      overflow: hidden; /* clips scrollbar to rounded corners */
+    }
+
+    .nm-picker__panel.open {
+      display: block;
+    }
+
+    /* Inner scroll container — keeps the scrollbar inside the clipped panel */
+    .nm-picker__list {
+      max-height: 192px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+
+    /* Individual option rows */
+    .nm-picker__option {
+      padding: 12px 18px;
+      font-size: 16px;
+      color: var(--text-muted);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .nm-picker__option.selected {
+      color: var(--green-deep);
+      font-weight: 700;
+    }
+
+    .nm-picker__option:active {
+      background: rgba(122, 158, 118, 0.10);
+    }
+
+    /* Photo upload area */
+    .photo-upload-area {
+      position: relative;
+      height: 190px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    /* Journal photo area: invisible input covers the whole area for reliable tap on iOS */
+    #journal-photo-area input[type="file"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 1;
+      font-size: 0;
+    }
+
+    .photo-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-muted);
+      font-size: 15px;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .photo-preview {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    /* Age row */
+    .age-row {
+      display: flex;
+      gap: 14px;
+    }
+
+    .age-group {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .age-group .nm-picker-wrap {
+      flex: 1;
+    }
+
+    .age-sub-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Form action buttons */
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+      padding-bottom: 40px;
+    }
+
+    .form-actions .nm-btn           { flex: 1; }
+    .form-actions .nm-btn-primary   { flex: 2; }
+
+    /* Empty list hint — replaced by full empty state in Step 11 */
+    .empty-hint {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 16px;
+      padding: 56px 0;
+      list-style: none;
+    }
+
+    /* ── Plant banner photo ─────────────────────────────────────── */
+    .plant-banner {
+      position: relative;
+      display: none;
+      height: 200px;
+      /* bleed out of .page's 20px side padding and 8px top padding */
+      margin: -8px -20px 20px;
+      overflow: hidden;
+    }
+
+    .plant-banner__img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* ── Saved entry card ────────────────────────────────────────── */
+    .saved-entry {
+      padding: 18px 20px;
+    }
+
+    .journal-saved-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #567252;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 14px;
+    }
+
+    .saved-care-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .care-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--green-deep);
+      background: var(--surface);
+      box-shadow:
+        3px 3px 7px var(--shadow-dark),
+        -3px -3px 7px var(--shadow-light);
+    }
+
+    .saved-no-actions {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .saved-notes-text {
+      font-size: 16px;
+      color: var(--text-main);
+      line-height: 1.55;
+      margin-bottom: 14px;
+      white-space: pre-wrap;
+    }
+
+    .saved-photo {
+      width: 100%;
+      border-radius: calc(var(--radius-card) - 4px);
+      object-fit: cover;
+      max-height: 240px;
+      display: block;
+    }
+
+    /* ── Plant page / Journal form ──────────────────────────────── */
+    .journal-section-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #567252;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 12px;
+    }
+
+    /* Toggle group — all four care actions in one raised card */
+    .toggle-group {
+      padding: 4px 18px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 52px;
+      padding: 10px 0;
+    }
+
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .toggle-divider {
+      height: 1px;
+      background: rgba(30, 55, 28, 0.10);
+    }
+
+    /* Neomorphic toggle pill */
+    .nm-toggle {
+      width: 52px;
+      height: 28px;
+      border-radius: 14px;
+      position: relative;
+      cursor: pointer;
+      flex-shrink: 0;
+      background: var(--surface);
+      box-shadow:
+        inset 3px 3px 7px var(--shadow-dark),
+        inset -3px -3px 7px var(--shadow-light);
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .nm-toggle.on {
+      background: var(--green-mid);
+      box-shadow:
+        inset 3px 3px 7px rgba(50, 82, 48, 0.50),
+        inset -3px -3px 7px rgba(140, 180, 130, 0.40);
+    }
+
+    /* Sliding thumb */
+    .nm-toggle__thumb {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--surface);
+      box-shadow:
+        2px 2px 5px var(--shadow-dark),
+        -2px -2px 5px var(--shadow-light);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .nm-toggle.on .nm-toggle__thumb {
+      transform: translateX(24px);
+      box-shadow:
+        2px 2px 5px rgba(50, 82, 48, 0.45),
+        -1px -1px 4px rgba(140, 180, 130, 0.50);
+    }
+
+    /* Notes textarea — extends nm-input */
+    .nm-textarea {
+      resize: none;
+      min-height: 96px;
+      line-height: 1.5;
+    }
+
+    /* Top spacing for first field after the toggle group */
+    .journal-field-top { margin-top: 16px; }
+
+    /* ── Journal history ────────────────────────────────────────── */
+    .journal-history {
+      margin-top: 36px;
+    }
+
+    .history-date-group {
+      margin-bottom: 24px;
+    }
+
+    .history-date-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #567252;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 10px;
+    }
+
+    .history-entry {
+      padding: 14px 18px;
+      margin-bottom: 12px;
+    }
+
+    .history-entry__header {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+
+    .history-entry__time {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      flex-shrink: 0;
+    }
+
+    .history-entry__care {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--green-deep);
+    }
+
+    .history-entry__no-care {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .history-entry__notes {
+      font-size: 15px;
+      color: var(--text-main);
+      line-height: 1.5;
+      margin-top: 4px;
+      margin-bottom: 10px;
+      white-space: pre-wrap;
+    }
+
+    .history-entry__photo {
+      width: 100%;
+      border-radius: 10px;
+      object-fit: cover;
+      max-height: 180px;
+      display: block;
+      margin-top: 8px;
+    }
+
+    .history-empty {
+      text-align: center;
+      color: var(--green-deep);
+      font-size: 15px;
+      font-style: italic;
+      padding: 32px 0 8px;
+    }
+
+    /* ── AI analysis status (plant page) ──────────────────────── */
+    .analysis-status {
+      display: none;
+      font-size: 14px;
+      color: var(--text-muted);
+      text-align: center;
+      font-style: italic;
+      margin-bottom: 4px;
+    }
+
+    .analysis-status.visible {
+      display: block;
+    }
+
+    /* ── Health Graph card ─────────────────────────────────────── */
+    .health-graph-card {
+      padding: 18px 18px 14px;
+      margin-bottom: 16px;
+    }
+
+    .health-graph-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #567252;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 14px;
+    }
+
+    .health-graph-body {
+      position: relative;
+      height: 160px;
+    }
+
+    .health-graph-empty {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* ── Care Tips card ───────────────────────────────────────── */
+    .care-tips-card {
+      padding: 18px 18px 16px;
+      margin-bottom: 16px;
+    }
+
+    .care-tips-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #567252;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 14px;
+    }
+
+    .care-tips-context {
+      font-size: 15px;
+      color: var(--text-muted);
+      font-style: italic;
+      line-height: 1.55;
+      margin-bottom: 14px;
+    }
+
+    .care-tips-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .care-tips-list li {
+      font-size: 15px;
+      color: var(--text-main);
+      line-height: 1.5;
+      padding-left: 18px;
+      position: relative;
+    }
+
+    .care-tips-list li::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: var(--green-mid);
+      font-weight: 700;
+    }
+
+    .care-tips-updated {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .care-tips-empty {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-bottom: 16px;
+    }
+
+    .care-tips-refresh {
+      width: 100%;
+    }
+
+    /* ── Plant page CTA button ─────────────────────────────────── */
+    .plant-page-cta {
+      width: 100%;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(30, 55, 28, 0.35);
+    }
+
+    .plant-page-cta:active {
+      box-shadow: 0 2px 6px rgba(30, 55, 28, 0.25);
+    }
+
+    /* ── Placeholder sections ──────────────────────────────────── */
+    .placeholder-section {
+      padding: 20px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .placeholder-section__label {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .placeholder-section__hint {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* ── History entry care badge row ──────────────────────────── */
+    .history-entry__care-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    /* ── Plant identification status ──────────────────────────── */
+    .identify-status {
+      display: none;
+      font-size: 14px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 6px 0 2px;
+      font-style: italic;
+    }
+
+    .identify-status.error {
+      color: #b05a3a;
+      font-style: normal;
+    }
+
+    .identify-status.visible {
+      display: block;
+    }
+
+    /* ── Add Plant — inline identification result ─────────────── */
+    .add-plant-name-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .add-plant-name-row .form-label { margin-bottom: 0; }
+    .add-plant-retry-btn { min-height: 34px; padding: 0 14px; font-size: 13px; flex-shrink: 0; }
+    .add-plant-tags-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .add-plant-tags-warning { font-size: 12px; color: var(--text-main); line-height: 1.5; }
+    #add-plant-identified { margin-bottom: 4px; }
+
+    /* ── Home / Empty state ───────────────────────────────────── */
+    .home-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding-top: 96px;
+    }
+
+    .home-heading {
+      font-size: 68px;
+      line-height: 1.1;
+      font-weight: 400;
+      font-family: 'Righteous', sans-serif;
+      color: var(--green-deep);
+      letter-spacing: 1.5px;
+      margin-bottom: 14px;
+    }
+
+    .home-tagline {
+      font-size: 18px;
+      color: var(--text-muted);
+      margin-bottom: 52px;
+    }
+
+    .home-cta {
+      min-width: 200px;
+      padding: 0 40px;
+    }
+
+    /* ── Utility ────────────────────────────────────────────────── */
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* ── Install banner ─────────────────────────────────────────── */
+    .install-banner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+      background: var(--surface);
+      box-shadow:
+        0 -4px 20px var(--shadow-dark),
+        0 -1px 0 rgba(255,255,255,0.5);
+      border-radius: var(--radius-card) var(--radius-card) 0 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 150;
+    }
+
+    .install-banner[hidden] { display: none !important; }
+
+    .install-banner__icon {
+      flex-shrink: 0;
+      color: var(--green-mid);
+    }
+
+    .install-banner__text {
+      flex: 1;
+      min-width: 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-main);
+      line-height: 1.4;
+    }
+
+    .install-banner__btn {
+      flex-shrink: 0;
+      min-height: 40px;
+      padding: 0 16px;
+      font-size: 14px;
+    }
+
+    .install-banner__dismiss {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── Gear button ────────────────────────────────────────────── */
+    .gear-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      min-width: 40px;
+      height: 44px;
+      border: none;
+      background: transparent;
+      color: var(--green-deep);
+      cursor: pointer;
+      border-radius: 50%;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    /* ── Onboarding screen ──────────────────────────────────────── */
+    .onboarding-body {
+      width: 100%;
+      max-width: 320px;
+      margin: 0 auto 32px;
+    }
+
+    .onboarding-explanation {
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.90);
+      line-height: 1.65;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .onboarding-link {
+      color: #ffffff;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .api-key-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .api-key-row .nm-input {
+      flex: 1;
+      min-width: 0;
+      font-family: monospace, sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    .api-key-toggle {
+      flex-shrink: 0;
+      width: 48px;
+      height: 48px;
+      border: none;
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-card);
+      box-shadow:
+        4px 4px 10px var(--shadow-dark),
+        -4px -4px 10px var(--shadow-light);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    /* Hide the browser's native password-reveal eye button (Edge/Chrome) */
+    input[type="password"]::-ms-reveal,
+    input[type="password"]::-ms-clear { display: none; }
+
+    .api-key-error {
+      font-size: 13px;
+      color: #b05a3a;
+      margin-top: 8px;
+      min-height: 18px;
+    }
+
+    /* ── Settings sheet ─────────────────────────────────────────── */
+    .settings-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(30, 55, 28, 0.35);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .settings-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .settings-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-width: 480px;
+      margin: 0 auto;
+      background: var(--surface);
+      border-radius: var(--radius-card) var(--radius-card) 0 0;
+      box-shadow:
+        0 -6px 24px var(--shadow-dark),
+        0 -1px 0 var(--shadow-light);
+      padding: 12px 24px calc(32px + env(safe-area-inset-bottom, 0px));
+      z-index: 201;
+      transform: translateY(100%);
+      transition: transform 0.28s ease;
+    }
+
+    .settings-sheet.open {
+      transform: translateY(0);
+    }
+
+    .settings-handle {
+      width: 40px;
+      height: 4px;
+      background: rgba(30, 55, 28, 0.18);
+      border-radius: 2px;
+      margin: 0 auto 24px;
+    }
+
+    .settings-section-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #567252;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 10px;
+    }
+
+    .settings-key-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 18px;
+    }
+
+    .settings-key-display {
+      flex: 1;
+      font-size: 15px;
+      color: var(--text-muted);
+      font-family: monospace, sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    .settings-delete-btn {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: #c0392b;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 3px 3px 8px rgba(150, 30, 20, 0.35), -2px -2px 6px rgba(255, 255, 255, 0.15);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: transform 0.1s ease;
+    }
+
+    .settings-delete-btn:active { transform: scale(0.92); }
+
+    .settings-new-key-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .settings-new-key-row .nm-input {
+      flex: 1;
+      min-width: 0;
+      font-family: monospace, sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    @keyframes confirm-tick {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.28); }
+      70%  { transform: scale(0.96); }
+      100% { transform: scale(1); }
+    }
+
+    .settings-confirm-btn {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 3px 3px 8px var(--shadow-dark), -3px -3px 8px var(--shadow-light);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    }
+
+    .settings-confirm-btn.ready {
+      background: var(--green-mid);
+      color: #fff;
+      box-shadow: 3px 3px 8px #5c7e59, -2px -2px 6px #98be94;
+    }
+
+    .settings-confirm-btn:active  { transform: scale(0.92); }
+    .settings-confirm-btn.success { animation: confirm-tick 0.5s ease forwards; }
+
+    .settings-warning {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-top: 16px;
+      font-style: italic;
+    }
+
+    /* ── Delete plant sheet ─────────────────────────────────────── */
+    .delete-sheet__prompt {
+      font-size: 12px;
+      font-weight: 700;
+      color: #567252;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 8px;
+    }
+
+    .delete-sheet__name {
+      font-family: 'Righteous', sans-serif;
+      font-size: 22px;
+      color: var(--text-main);
+      margin-bottom: 28px;
+      line-height: 1.3;
+    }
+
+    .delete-sheet__actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .delete-sheet__actions .nm-btn { flex: 1; }
+
+    .nm-btn-danger {
+      background: #c0392b;
+      color: #fff;
+      box-shadow:
+        4px 4px 10px rgba(150, 30, 20, 0.40),
+        -4px -4px 10px rgba(255, 255, 255, 0.15);
+    }
+
+    .nm-btn-danger:active {
+      box-shadow:
+        inset 3px 3px 8px rgba(100, 20, 10, 0.50),
+        inset -3px -3px 8px rgba(200, 80, 60, 0.20);
+    }
+
+    /* ── Journal History page ─────────────────────────────────────── */
+    .jh-toolbar {
+      margin-bottom: 20px;
+    }
+
+    .jh-filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .jh-filter-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 50px;
+      background: var(--surface);
+      color: var(--green-deep);
+      font-family: 'Righteous', sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow:
+        3px 3px 7px var(--shadow-dark),
+        -3px -3px 7px var(--shadow-light);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: box-shadow 0.15s ease;
+    }
+
+    .jh-filter-pill.active {
+      box-shadow:
+        inset 3px 3px 7px var(--shadow-dark),
+        inset -3px -3px 7px var(--shadow-light);
+    }
+
+    .jh-timeline-btn {
+      width: 100%;
+    }
+
+    .jh-view-btn {
+      width: 100%;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+
+    /* ── Top bar title overflow / marquee ───────────────────────── */
+    .app-title--small {
+      font-size: 20px;
+    }
+
+    .app-title--marquee .app-title__inner {
+      animation: title-marquee 8s linear infinite;
+    }
+
+    @keyframes title-marquee {
+      0%,  15% { transform: translateX(0); }
+      65%, 80% { transform: translateX(var(--marquee-dist)); }
+      80.01%   { transform: translateX(0); }
+      100%     { transform: translateX(0); }
+    }
+
+    /* ── Care icon size override ─────────────────────────────────── */
+    .care-badge svg,
+    .jh-filter-pill svg {
+      width: 13px;
+      height: 13px;
+      flex-shrink: 0;
+    }
+
+    /* ── Banner gallery icon button ─────────────────────────────── */
+    .plant-banner__gallery-btn {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(20, 45, 20, 0.50);
+      color: rgba(255, 255, 255, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .plant-banner__gallery-btn:active {
+      background: rgba(20, 45, 20, 0.75);
+      transform: scale(0.93);
+    }
+
+    /* ── Banner camera icon button (re-identify) ──────────────────── */
+    .plant-banner__camera-btn {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(20, 45, 20, 0.50);
+      color: rgba(255, 255, 255, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .plant-banner__camera-btn:active {
+      background: rgba(20, 45, 20, 0.75);
+      transform: scale(0.93);
+    }
+
+    /* ── Photo Timeline view ─────────────────────────────────────── */
+    .pt-item {
+      margin-bottom: 20px;
+    }
+
+    .pt-date {
+      font-size: 12px;
+      font-weight: 700;
+      color: #567252;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 8px;
+    }
+
+    .pt-photo {
+      width: 100%;
+      border-radius: var(--radius-card);
+      object-fit: cover;
+      display: block;
+      max-height: 320px;
+    }
+
+    .pt-subtitle {
+      font-size: 12px;
+      font-style: italic;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* ── Care Tips / Chat tab switcher ──────────────────────────── */
+    .ct-tabs {
+      display: flex;
+      gap: 8px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(30, 55, 28, 0.10);
+      margin-bottom: 14px;
+      flex-shrink: 0;
+    }
+
+    .ct-tab {
+      flex: 1;
+      min-height: 38px;
+      padding: 0 12px;
+      border: none;
+      border-radius: var(--radius-btn);
+      background: var(--surface);
+      color: var(--green-deep);
+      font-family: 'Righteous', sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow:
+        3px 3px 7px var(--shadow-dark),
+        -3px -3px 7px var(--shadow-light);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: box-shadow 0.15s ease;
+    }
+
+    .ct-tab.ct-tab--active {
+      background: var(--green-mid);
+      color: var(--white);
+      box-shadow:
+        3px 3px 7px #5c7e59,
+        -3px -3px 7px #98be94;
+    }
+
+    /* ── Care tips card — chat mode ─────────────────────────────── */
+    .care-tips-card.chat-active {
+      display: flex;
+      flex-direction: column;
+      height: 450px;
+      padding-bottom: 16px;
+    }
+
+    /* ── Chat panel ─────────────────────────────────────────────── */
+    .chat-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .chat-inner {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-height: 0;
+    }
+
+    .chat-earlier {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      padding-bottom: 10px;
+      flex-shrink: 0;
+    }
+
+    /* ── Chat message bubbles ────────────────────────────────────── */
+    .chat-bubble-wrap {
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .chat-bubble-wrap--user      { align-items: flex-end; }
+    .chat-bubble-wrap--assistant { align-items: flex-start; }
+
+    .chat-bubble {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 15px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .chat-bubble--user {
+      background: var(--green-mid);
+      color: var(--white);
+    }
+
+    .chat-bubble--assistant {
+      background: var(--surface);
+      color: var(--text-main);
+      box-shadow:
+        3px 3px 7px var(--shadow-dark),
+        -3px -3px 7px var(--shadow-light);
+    }
+
+    .chat-bubble__time {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      margin-bottom: 8px;
+      padding: 0 4px;
+    }
+
+    /* ── Typing indicator ───────────────────────────────────────── */
+    .chat-typing {
+      padding: 12px 14px;
+    }
+
+    .chat-dots {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .chat-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      animation: dot-pulse 1.4s ease-in-out infinite;
+    }
+
+    .chat-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .chat-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes dot-pulse {
+      0%, 60%, 100% { transform: scale(0.8); opacity: 0.4; }
+      30%            { transform: scale(1.1); opacity: 1; }
+    }
+
+    /* ── Chat input bar ─────────────────────────────────────────── */
+    .chat-input-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(30, 55, 28, 0.08);
+      flex-shrink: 0;
+    }
+
+    .chat-input {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 16px;
+      font-size: 15px;
+      border-radius: 50px;
+      border: none;
+      background: var(--surface);
+      color: var(--text-main);
+      font-family: inherit;
+      box-shadow:
+        inset 3px 3px 7px var(--shadow-dark),
+        inset -3px -3px 7px var(--shadow-light);
+      outline: none;
+    }
+
+    .chat-input::placeholder { color: var(--text-muted); opacity: 1; }
+
+    .chat-input:disabled { opacity: 0.6; }
+
+    .chat-send-btn {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: var(--green-mid);
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 3px 3px 7px #5c7e59, -3px -3px 7px #98be94;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: box-shadow 0.15s ease, transform 0.1s ease;
+    }
+
+    .chat-send-btn:active {
+      box-shadow: inset 2px 2px 5px #5c7e59, inset -2px -2px 5px #98be94;
+      transform: scale(0.93);
+    }
+
+    .chat-send-btn:disabled { opacity: 0.5; cursor: default; }
+
+    /* ── Tag picker sheet ───────────────────────────────────────── */
+    .tag-picker__title {
+      font-family: 'Righteous', sans-serif;
+      font-size: 20px;
+      color: var(--text-main);
+      margin-bottom: 12px;
+    }
+
+    .tag-picker__warning {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      font-style: italic;
+      margin-bottom: 18px;
+      padding: 12px 14px;
+      border-radius: var(--radius-card);
+      background: rgba(30, 55, 28, 0.05);
+    }
+
+    .tag-picker__grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .tag-picker__pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 50px;
+      background: var(--surface);
+      color: var(--text-main);
+      font-family: 'Righteous', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      box-shadow:
+        3px 3px 7px var(--shadow-dark),
+        -3px -3px 7px var(--shadow-light);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+    }
+
+    .tag-picker__pill.selected {
+      color: white;
+      box-shadow:
+        inset 3px 3px 8px rgba(0, 0, 0, 0.25),
+        inset -2px -2px 5px rgba(255, 255, 255, 0.15);
+    }
+
+    .tag-picker__pill.selected svg {
+      filter: brightness(0) invert(1);
+    }
+
+    .tag-picker__pill.dimmed {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .tag-picker__identified {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: var(--radius-card);
+      box-shadow:
+        inset 3px 3px 7px var(--shadow-dark),
+        inset -3px -3px 7px var(--shadow-light);
+      margin-bottom: 18px;
+    }
+
+    .tag-picker__id-names {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .tag-picker__id-common {
+      font-family: 'Righteous', sans-serif;
+      font-size: 16px;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tag-picker__id-species {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-style: italic;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tag-picker__retry-btn {
+      background: none;
+      border: 1.5px solid var(--green-mid);
+      color: var(--green-deep);
+      font-family: 'Righteous', sans-serif;
+      font-size: 12px;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 50px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .tag-picker__actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .tag-picker__actions .nm-btn        { flex: 1; }
+    .tag-picker__actions .nm-btn-primary { flex: 2; }
+
+    #tag-picker-sheet {
+      max-height: 88vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* ── My Plants tag filter bar ───────────────────────────────── */
+    .mp-tag-filter {
+      margin-bottom: 16px;
+    }
+
+    .mp-tag-filter__scroll {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 10px 4px 12px 4px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .mp-tag-filter__scroll::-webkit-scrollbar { display: none; }
+
+    .mp-filter-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 50px;
+      background: var(--surface);
+      color: var(--text-main);
+      font-family: 'Righteous', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      box-shadow:
+        3px 3px 7px var(--shadow-dark),
+        -3px -3px 7px var(--shadow-light);
+      white-space: nowrap;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: box-shadow 0.15s ease;
+    }
+
+    .mp-filter-pill--active {
+      box-shadow:
+        inset 3px 3px 7px var(--shadow-dark),
+        inset -3px -3px 7px var(--shadow-light);
+    }
+
+    .mp-filter-pill svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    /* ── Plant card tag pills ────────────────────────────────────── */
+    .plant-card__tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      margin-top: 5px;
+    }
+
+    .plant-tag-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 50px;
+      font-size: 11px;
+      font-family: 'Righteous', sans-serif;
+      line-height: 1.3;
+      background: var(--surface);
+      box-shadow:
+        3px 3px 7px var(--shadow-dark),
+        -3px -3px 7px var(--shadow-light);
+    }
+
+    .plant-tag-pill svg {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+
+    /* Fix 2 — smaller pills on plant cards only */
+    .plant-card__tags .plant-tag-pill {
+      font-size: 10px;
+      padding: 2px 6px;
+      gap: 3px;
+    }
+
+    .plant-card__tags .plant-tag-pill svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    /* ── Plant page tags section ────────────────────────────────── */
+    .plant-tags-section {
+      margin-bottom: 16px;
+    }
+
+    .plant-tags__pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .plant-tag-add-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border: none;
+      border-radius: 50px;
+      font-size: 11px;
+      font-family: 'Righteous', sans-serif;
+      color: var(--text-muted);
+      background: var(--surface);
+      cursor: pointer;
+      box-shadow:
+        2px 2px 5px var(--shadow-dark),
+        -2px -2px 5px var(--shadow-light);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    /* ── Change Photo action sheet ─────────────────────────────── */
+    .change-photo__title {
+      font-family: 'Righteous', sans-serif;
+      font-size: 20px;
+      color: var(--text-main);
+      margin-bottom: 20px;
+    }
+
+    .change-photo__btn,
+    .change-photo-option {
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    .change-photo__cancel {
+      width: 100%;
+      color: var(--text-muted);
+    }
+
+    /* ── Re-identify confirmation sheet ───────────────────────── */
+    .reidentify__preview {
+      width: 100%;
+      height: 80px;
+      object-fit: cover;
+      border-radius: var(--radius-card);
+      display: block;
+      margin-bottom: 16px;
+    }
+
+    .reidentify__id-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-bottom: 12px;
+    }
+
+    .reidentify__actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .reidentify__actions .nm-btn        { flex: 1; }
+    .reidentify__actions .nm-btn-primary { flex: 2; }
+
+  </style>
+</head>
+<body>
+
+  <div id="app">
+    <!-- Top bar -->
+    <header class="top-bar">
+      <button class="back-btn" id="back-btn" aria-label="Go back" style="display:none">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="app-title" id="app-title">Plant Companion</span>
+      <button class="gear-btn" id="btn-settings" aria-label="Settings" style="display:none">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"
+                stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </button>
+    </header>
+
+    <main class="page" id="page-root">
+
+      <!-- ── Onboarding / API key setup view ─────────────────────── -->
+      <section id="view-onboarding" class="view">
+        <div class="home-screen">
+          <h1 class="home-heading">Plant Companion</h1>
+          <p class="home-tagline">Your plants, understood.</p>
+          <div class="onboarding-body">
+            <p class="onboarding-explanation">
+              Plant Companion uses Claude AI to identify your plants and generate
+              care insights. Paste your Anthropic API key below to get started.
+              Get your free key at
+              <a href="https://console.anthropic.com" target="_blank"
+                 rel="noopener noreferrer" class="onboarding-link">console.anthropic.com</a>
+            </p>
+            <div class="form-field">
+              <div class="api-key-row">
+                <input type="password" id="field-api-key" class="nm-input"
+                       placeholder="sk-ant-..."
+                       autocomplete="off" autocorrect="off"
+                       autocapitalize="none" spellcheck="false" />
+                <button class="api-key-toggle" id="btn-toggle-key-visibility"
+                        type="button" aria-label="Show API key">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="2"
+                       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="api-key-error" id="api-key-error"></p>
+            </div>
+          </div>
+          <button class="nm-btn nm-btn-primary home-cta" id="btn-save-api-key">
+            Add a Plant
+          </button>
+        </div>
+      </section>
+
+      <!-- ── Home / Empty state view ───────────────────────────── -->
+      <section id="view-home" class="view">
+        <div class="home-screen">
+          <h1 class="home-heading">Plant Companion</h1>
+          <p class="home-tagline">Your plants, understood.</p>
+          <button class="nm-btn nm-btn-primary home-cta" id="btn-get-started">
+            Get Started
+          </button>
+        </div>
+      </section>
+
+      <!-- ── My Plants view ──────────────────────────────────────── -->
+      <section id="view-my-plants" class="view">
+        <h2 class="page-heading">My Plants</h2>
+        <div class="mp-tag-filter" id="mp-tag-filter" style="display:none">
+          <div class="mp-tag-filter__scroll" id="mp-tag-filter-scroll"></div>
+        </div>
+        <ul class="plant-list" id="plant-list" aria-label="Your plants"></ul>
+      </section>
+
+      <!-- ── Add Plant view ──────────────────────────────────────── -->
+      <section id="view-add-plant" class="view">
+
+        <!-- Photo upload -->
+        <div class="form-field">
+          <div class="photo-upload-area nm-inset" id="photo-upload-area">
+            <input type="file" id="photo-input" accept="image/*"
+                   aria-label="Choose a photo from camera or gallery" style="display:none" />
+            <div id="photo-placeholder" class="photo-placeholder">
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+                <rect x="4" y="10" width="32" height="24" rx="5"
+                      stroke="currentColor" stroke-width="2" fill="none"/>
+                <circle cx="20" cy="22" r="6"
+                        stroke="currentColor" stroke-width="2" fill="none"/>
+                <path d="M14 10V8a2 2 0 012-2h8a2 2 0 012 2v2"
+                      stroke="currentColor" stroke-width="2"/>
+                <circle cx="31" cy="16" r="1.5" fill="currentColor"/>
+              </svg>
+              <span>Tap to add a photo</span>
+            </div>
+            <img id="photo-preview" class="photo-preview" alt="" />
+          </div>
+        </div>
+
+        <!-- Plant identification status -->
+        <p class="identify-status" id="identify-status"></p>
+
+        <!-- Common Name -->
+        <div class="form-field">
+          <label class="form-label" for="field-common-name">Common Name</label>
+          <input type="text" id="field-common-name" class="nm-input"
+                 placeholder="e.g. Jade Plant"
+                 autocomplete="off" autocorrect="off" spellcheck="false" />
+        </div>
+
+        <!-- Species Name + Retry -->
+        <div class="form-field">
+          <div class="add-plant-name-row">
+            <label class="form-label" for="field-species-name">Species Name</label>
+            <button class="nm-btn add-plant-retry-btn" id="btn-retry-identification" type="button" style="display:none">Retry ↻</button>
+          </div>
+          <input type="text" id="field-species-name" class="nm-input"
+                 placeholder="e.g. Crassula ovata"
+                 autocomplete="off" autocorrect="off" autocapitalize="words" />
+        </div>
+
+        <!-- Inline tag picker (shown after identification) -->
+        <div id="add-plant-identified" style="display:none">
+          <div class="form-field">
+            <span class="form-label">Plant Tags</span>
+            <div class="add-plant-tags-grid" id="add-plant-tags-grid"></div>
+            <p class="add-plant-tags-warning">Tags guide all AI responses. Pick only tags you're certain about.</p>
+          </div>
+        </div>
+
+        <!-- Age (optional) -->
+        <div class="form-field">
+          <span class="form-label">
+            Age <span class="optional-tag">optional</span>
+          </span>
+          <div class="age-row">
+
+            <div class="age-group">
+              <div class="nm-picker-wrap">
+                <div class="nm-picker" id="picker-years" data-value="0"
+                     role="button" tabindex="0" aria-haspopup="listbox"
+                     aria-label="Plant age in years">
+                  <span class="nm-picker__val">0</span>
+                  <svg class="nm-picker__caret" width="16" height="16"
+                       viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M4 6l4 4 4-4" stroke="currentColor"
+                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="nm-picker__panel" id="picker-years-panel"
+                     role="listbox" aria-label="Years"></div>
+              </div>
+              <span class="age-sub-label">Years</span>
+            </div>
+
+            <div class="age-group">
+              <div class="nm-picker-wrap">
+                <div class="nm-picker" id="picker-months" data-value="0"
+                     role="button" tabindex="0" aria-haspopup="listbox"
+                     aria-label="Plant age in months">
+                  <span class="nm-picker__val">0</span>
+                  <svg class="nm-picker__caret" width="16" height="16"
+                       viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M4 6l4 4 4-4" stroke="currentColor"
+                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="nm-picker__panel" id="picker-months-panel"
+                     role="listbox" aria-label="Months"></div>
+              </div>
+              <span class="age-sub-label">Months</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <button class="nm-btn" id="btn-cancel">Cancel</button>
+          <button class="nm-btn nm-btn-primary" id="btn-save-plant">Save Plant</button>
+        </div>
+
+      </section>
+
+      <!-- ── Plant page view ────────────────────────────────────── -->
+      <section id="view-plant" class="view">
+
+        <!-- Banner photo — full-width, shown only when plant has a photo -->
+        <div class="plant-banner" id="plant-banner">
+          <img id="plant-banner-img" class="plant-banner__img" alt=""
+               style="cursor:pointer" />
+          <button class="plant-banner__camera-btn" id="btn-banner-camera"
+                  type="button" aria-label="Re-identify plant">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="white" stroke-width="2" stroke-linecap="round"
+                 stroke-linejoin="round" aria-hidden="true">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+          </button>
+          <button class="plant-banner__gallery-btn" id="btn-banner-gallery"
+                  type="button" aria-label="Photo Timeline">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <rect x="1" y="1" width="6" height="6" rx="1"/>
+              <rect x="9" y="1" width="6" height="6" rx="1"/>
+              <rect x="1" y="9" width="6" height="6" rx="1"/>
+              <rect x="9" y="9" width="6" height="6" rx="1"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Plant type tags -->
+        <div class="plant-tags-section" id="plant-tags-section">
+          <div class="plant-tags__pills" id="plant-tags-pills"></div>
+        </div>
+
+        <!-- New Journal Entry CTA -->
+        <button class="nm-btn nm-btn-primary plant-page-cta" id="btn-open-journal">
+          New Journal Entry
+        </button>
+
+        <!-- AI analysis status -->
+        <p class="analysis-status" id="analysis-status"></p>
+
+        <!-- Health Graph -->
+        <div class="health-graph-card nm-raised" id="health-graph-card">
+          <p class="health-graph-title">Health Graph</p>
+          <div class="health-graph-body" id="health-graph-body">
+            <canvas id="health-graph-canvas"></canvas>
+          </div>
+          <p class="health-graph-empty" id="health-graph-empty" style="display:none">
+            No data yet — save a journal entry to start tracking
+          </p>
+        </div>
+
+        <!-- Care Tips / Chat card -->
+        <div class="care-tips-card nm-raised" id="care-tips-card">
+
+          <!-- Tab switcher -->
+          <div class="ct-tabs">
+            <button class="ct-tab ct-tab--active" id="tab-care-tips" type="button">Care Tips</button>
+            <button class="ct-tab" id="tab-chat" type="button">Chat</button>
+          </div>
+
+          <!-- Care Tips panel -->
+          <div id="panel-care-tips">
+            <div id="care-tips-content" style="display:none">
+              <p class="care-tips-context" id="care-tips-context"></p>
+              <ul class="care-tips-list" id="care-tips-list"></ul>
+              <p class="care-tips-updated" id="care-tips-updated"></p>
+            </div>
+
+            <p class="care-tips-empty" id="care-tips-empty">
+              No insights yet — save a journal entry to generate care tips
+            </p>
+
+            <button class="nm-btn care-tips-refresh" id="btn-refresh-analysis">Refresh</button>
+          </div>
+
+          <!-- Chat panel -->
+          <div class="chat-panel" id="panel-chat" style="display:none">
+            <div class="chat-inner nm-inset">
+              <div class="chat-messages" id="chat-messages">
+                <p class="chat-earlier" id="chat-earlier" style="display:none">↑ Earlier messages</p>
+              </div>
+              <div class="chat-input-bar">
+                <input type="text" class="chat-input" id="chat-input"
+                       placeholder="Ask about your plant…"
+                       autocomplete="off" autocorrect="off" spellcheck="false" />
+                <button class="chat-send-btn" id="chat-send-btn" type="button" aria-label="Send">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor" stroke="none"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Journal history — rendered by renderJournalHistory() -->
+        <div id="journal-history" class="journal-history"></div>
+
+        <button class="nm-btn jh-view-btn" id="btn-view-history">
+          View Journal History
+        </button>
+
+      </section>
+
+      <!-- ── Journal Entry view ─────────────────────────────────── -->
+      <section id="view-journal" class="view">
+
+        <!-- Care toggles -->
+        <div class="toggle-group nm-raised">
+
+          <div class="toggle-row">
+            <span class="toggle-label">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M9 2C9 2 4 9 4 12C4 14.8 6.2 16.5 9 16.5C11.8 16.5 14 14.8 14 12C14 9 9 2 9 2Z" fill="#4A9FD4"/></svg>
+              Watered
+            </span>
+            <div class="nm-toggle" id="toggle-watered"
+                 role="switch" aria-checked="false" tabindex="0" data-on="false">
+              <div class="nm-toggle__thumb"></div>
+            </div>
+          </div>
+
+          <div class="toggle-divider"></div>
+
+          <div class="toggle-row">
+            <span class="toggle-label">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="3.2" fill="#E8A838"/><path d="M9 1.5V4M9 14V16.5M1.5 9H4M14 9H16.5M3.7 3.7L5.4 5.4M12.6 12.6L14.3 14.3M3.7 14.3L5.4 12.6M12.6 5.4L14.3 3.7" stroke="#E8A838" stroke-width="1.6" stroke-linecap="round"/></svg>
+              Fed
+            </span>
+            <div class="nm-toggle" id="toggle-fed"
+                 role="switch" aria-checked="false" tabindex="0" data-on="false">
+              <div class="nm-toggle__thumb"></div>
+            </div>
+          </div>
+
+          <div class="toggle-divider"></div>
+
+          <div class="toggle-row">
+            <span class="toggle-label">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="4.5" cy="13.5" r="2.2" stroke="#D4724A" stroke-width="1.5"/><circle cx="4.5" cy="4.5" r="2.2" stroke="#D4724A" stroke-width="1.5"/><line x1="6.3" y1="12.1" x2="15" y2="5" stroke="#D4724A" stroke-width="1.5" stroke-linecap="round"/><line x1="6.3" y1="5.9" x2="15" y2="13" stroke="#D4724A" stroke-width="1.5" stroke-linecap="round"/></svg>
+              Pruned
+            </span>
+            <div class="nm-toggle" id="toggle-pruned"
+                 role="switch" aria-checked="false" tabindex="0" data-on="false">
+              <div class="nm-toggle__thumb"></div>
+            </div>
+          </div>
+
+          <div class="toggle-divider"></div>
+
+          <div class="toggle-row">
+            <span class="toggle-label">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M4.5 8.5H13.5L12.5 16H5.5L4.5 8.5Z" fill="#C4856A"/><rect x="3" y="6.5" width="12" height="2.5" rx="1.2" fill="#C4856A"/><path d="M9 6.5C9 6.5 7 4.5 7 3C7 2 7.8 1.5 9 1.5C10.2 1.5 11 2 11 3C11 4.5 9 6.5 9 6.5Z" fill="#7a9e76"/></svg>
+              Repotted
+            </span>
+            <div class="nm-toggle" id="toggle-repotted"
+                 role="switch" aria-checked="false" tabindex="0" data-on="false">
+              <div class="nm-toggle__thumb"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Photo (optional) -->
+        <div class="form-field journal-field-top">
+          <div class="photo-upload-area nm-inset" id="journal-photo-area">
+            <input type="file" id="journal-photo-input" accept="image/*"
+                   aria-label="Choose a photo from camera or gallery" />
+            <div id="journal-photo-placeholder" class="photo-placeholder">
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+                <rect x="4" y="10" width="32" height="24" rx="5"
+                      stroke="currentColor" stroke-width="2" fill="none"/>
+                <circle cx="20" cy="22" r="6"
+                        stroke="currentColor" stroke-width="2" fill="none"/>
+                <path d="M14 10V8a2 2 0 012-2h8a2 2 0 012 2v2"
+                      stroke="currentColor" stroke-width="2"/>
+                <circle cx="31" cy="16" r="1.5" fill="currentColor"/>
+              </svg>
+              <span>Add a photo (optional)</span>
+            </div>
+            <img id="journal-photo-preview" class="photo-preview" alt="" />
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-field">
+          <label class="form-label" for="journal-notes">Notes</label>
+          <textarea id="journal-notes" class="nm-input nm-textarea"
+                    placeholder="How does the plant look? Any observations…"></textarea>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <button class="nm-btn" id="btn-journal-cancel">Cancel</button>
+          <button class="nm-btn nm-btn-primary" id="btn-journal-save">Save</button>
+        </div>
+
+      </section>
+
+      <!-- ── Journal History view ───────────────────────────────── -->
+      <section id="view-journal-history" class="view">
+
+        <!-- Filter bar + Photo Timeline button -->
+        <div class="jh-toolbar">
+          <div class="jh-filters">
+
+            <button class="jh-filter-pill" data-action="Watered"
+                    type="button" aria-pressed="false">
+              <svg width="15" height="15" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                <path d="M9 2C9 2 4 9 4 12C4 14.8 6.2 16.5 9 16.5C11.8 16.5 14 14.8 14 12C14 9 9 2 9 2Z" fill="#4A9FD4"/>
+              </svg>
+              Watered
+            </button>
+
+            <button class="jh-filter-pill" data-action="Fed"
+                    type="button" aria-pressed="false">
+              <svg width="15" height="15" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                <circle cx="9" cy="9" r="3.2" fill="#E8A838"/>
+                <path d="M9 1.5V4M9 14V16.5M1.5 9H4M14 9H16.5M3.7 3.7L5.4 5.4M12.6 12.6L14.3 14.3M3.7 14.3L5.4 12.6M12.6 5.4L14.3 3.7" stroke="#E8A838" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+              Fed
+            </button>
+
+            <button class="jh-filter-pill" data-action="Pruned"
+                    type="button" aria-pressed="false">
+              <svg width="15" height="15" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                <circle cx="4.5" cy="13.5" r="2.2" stroke="#D4724A" stroke-width="1.5"/>
+                <circle cx="4.5" cy="4.5" r="2.2" stroke="#D4724A" stroke-width="1.5"/>
+                <line x1="6.3" y1="12.1" x2="15" y2="5" stroke="#D4724A" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="6.3" y1="5.9" x2="15" y2="13" stroke="#D4724A" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              Pruned
+            </button>
+
+            <button class="jh-filter-pill" data-action="Repotted"
+                    type="button" aria-pressed="false">
+              <svg width="15" height="15" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                <path d="M4.5 8.5H13.5L12.5 16H5.5L4.5 8.5Z" fill="#C4856A"/>
+                <rect x="3" y="6.5" width="12" height="2.5" rx="1.2" fill="#C4856A"/>
+                <path d="M9 6.5C9 6.5 7 4.5 7 3C7 2 7.8 1.5 9 1.5C10.2 1.5 11 2 11 3C11 4.5 9 6.5 9 6.5Z" fill="#7a9e76"/>
+              </svg>
+              Repotted
+            </button>
+
+          </div>
+
+          <button class="nm-btn jh-timeline-btn" id="btn-photo-timeline" type="button">
+            Photo Timeline
+          </button>
+        </div>
+
+        <!-- Entries rendered by renderJournalHistoryPage() -->
+        <div id="jh-entries"></div>
+
+      </section>
+
+      <!-- ── Photo Timeline view ──────────────────────────────────── -->
+      <section id="view-photo-timeline" class="view">
+        <div id="pt-items"></div>
+      </section>
+
+    </main>
+
+    <!-- Floating action button -->
+    <div class="fab-anchor" id="fab-anchor">
+      <button class="nm-fab" id="fab-add" aria-label="Add plant">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="11" y1="2" x2="11" y2="20" stroke="#4d6b49" stroke-width="4.5" stroke-linecap="round"/>
+          <line x1="2" y1="11" x2="20" y2="11" stroke="#4d6b49" stroke-width="4.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Toast (shown programmatically) -->
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <!-- Settings backdrop -->
+    <div id="settings-backdrop" class="settings-backdrop"></div>
+
+    <!-- Settings sheet -->
+    <div id="settings-sheet" class="settings-sheet" role="dialog"
+         aria-modal="true" aria-label="Settings">
+      <div class="settings-handle"></div>
+      <p class="settings-section-label">API Key</p>
+      <div class="settings-key-row" id="settings-key-row">
+        <p class="settings-key-display" id="settings-key-display"></p>
+        <button class="settings-delete-btn" id="btn-delete-key" type="button"
+                aria-label="Remove API key">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <line x1="2" y1="7" x2="12" y2="7" stroke="currentColor"
+                  stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="settings-new-key-row" id="settings-new-key-row" style="display:none">
+        <input type="password" id="settings-key-input" class="nm-input"
+               placeholder="sk-ant-..." autocomplete="off" autocorrect="off"
+               autocapitalize="none" spellcheck="false" />
+        <button class="settings-confirm-btn" id="btn-confirm-key" type="button"
+                aria-label="Save new API key">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M2 7l3.5 3.5L12 3" stroke="currentColor"
+                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <p class="settings-warning">
+        Removing your API key will lock the app until a new key is entered.
+        Your plants and journal data are safely stored on your device and will
+        be waiting when you return.
+      </p>
+    </div>
+
+    <!-- Delete plant backdrop -->
+    <div id="delete-backdrop" class="settings-backdrop"></div>
+
+    <!-- Delete plant confirmation sheet -->
+    <div id="delete-sheet" class="settings-sheet" role="dialog"
+         aria-modal="true" aria-label="Delete plant">
+      <div class="settings-handle"></div>
+      <p class="delete-sheet__prompt">Delete plant?</p>
+      <p class="delete-sheet__name" id="delete-plant-name"></p>
+      <div class="delete-sheet__actions">
+        <button class="nm-btn" id="btn-delete-cancel">Cancel</button>
+        <button class="nm-btn nm-btn-danger" id="btn-delete-confirm">Delete</button>
+      </div>
+    </div>
+
+    <!-- Tag picker backdrop -->
+    <div id="tag-picker-backdrop" class="settings-backdrop"></div>
+
+    <!-- Tag picker sheet -->
+    <div id="tag-picker-sheet" class="settings-sheet" role="dialog"
+         aria-modal="true" aria-label="Choose Plant Tags">
+      <div class="settings-handle"></div>
+      <p class="tag-picker__title">Choose Plant Tags</p>
+      <div class="tag-picker__identified" id="tag-picker-identified" style="display:none">
+        <div class="tag-picker__id-names">
+          <span class="tag-picker__id-common" id="tag-picker-common-name"></span>
+          <span class="tag-picker__id-species" id="tag-picker-species-name"></span>
+        </div>
+        <button class="tag-picker__retry-btn" id="btn-tag-retry" type="button">↺ Retry</button>
+      </div>
+      <p class="tag-picker__warning">Tags shape every AI response for this plant — care tips, chat, and insights. Only pick tags you're certain about. If unsure, skip them and let the AI work from your plant's name alone. A correctly identified plant always gives better results than a wrong tag.</p>
+      <div class="tag-picker__grid" id="tag-picker-grid"></div>
+      <div class="tag-picker__actions">
+        <button class="nm-btn" id="btn-tag-skip" type="button">Skip</button>
+        <button class="nm-btn nm-btn-primary" id="btn-tag-save" type="button">Save Tags</button>
+      </div>
+    </div>
+
+    <!-- Change Photo action sheet backdrop -->
+    <div id="change-photo-backdrop" class="settings-backdrop"></div>
+
+    <!-- Change Photo action sheet -->
+    <div id="change-photo-sheet" class="settings-sheet" role="dialog"
+         aria-modal="true" aria-label="Change Photo">
+      <div class="settings-handle"></div>
+      <p class="change-photo__title">Change Photo</p>
+      <label class="nm-btn change-photo-option" id="btn-take-photo">
+        📷 Take Photo
+        <input type="file" accept="image/*" capture="environment" style="display:none" id="change-photo-input-camera" />
+      </label>
+      <label class="nm-btn change-photo-option" id="btn-choose-gallery">
+        🖼 Choose from Gallery
+        <input type="file" accept="image/*" style="display:none" id="change-photo-input-gallery" />
+      </label>
+      <button class="nm-btn change-photo__cancel" id="btn-change-photo-cancel" type="button">
+        Cancel
+      </button>
+    </div>
+
+    <!-- Re-identify confirmation backdrop -->
+    <div id="reidentify-backdrop" class="settings-backdrop"></div>
+
+    <!-- Re-identify confirmation sheet -->
+    <div id="reidentify-sheet" class="settings-sheet" role="dialog"
+         aria-modal="true" aria-label="Confirm plant identification">
+      <div class="settings-handle"></div>
+      <img id="reidentify-preview" class="reidentify__preview" alt="" />
+      <p class="reidentify__id-label">We identified this as:</p>
+      <div class="form-field">
+        <label class="form-label" for="reidentify-common-name">Common Name</label>
+        <input type="text" id="reidentify-common-name" class="nm-input"
+               autocomplete="off" autocorrect="off" spellcheck="false" />
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="reidentify-species-name">Species Name</label>
+        <input type="text" id="reidentify-species-name" class="nm-input"
+               autocomplete="off" autocorrect="off" autocapitalize="words" />
+      </div>
+      <div class="reidentify__actions">
+        <button class="nm-btn" id="btn-reidentify-cancel" type="button">Cancel</button>
+        <button class="nm-btn nm-btn-primary" id="btn-reidentify-confirm" type="button">Confirm &amp; Update</button>
+      </div>
+    </div>
+
+    <!-- Install banner (shown on beforeinstallprompt) -->
+    <div id="install-banner" class="install-banner" hidden role="complementary"
+         aria-label="Install Plant Companion">
+      <svg class="install-banner__icon" width="22" height="22" viewBox="0 0 24 24"
+           fill="currentColor" aria-hidden="true">
+        <path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8
+                 20C19 20 22 3 22 3c-1 2-8 2-12 5 4-3 11-3 11-3z"/>
+      </svg>
+      <span class="install-banner__text">Add Plant Companion to your home screen</span>
+      <button class="nm-btn nm-btn-primary install-banner__btn" id="btn-install">
+        Install
+      </button>
+      <button class="install-banner__dismiss" id="btn-install-dismiss"
+              aria-label="Dismiss">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Chart.js for health graph -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+
+  <!-- Modules loaded in dependency order -->
+  <script src="storage.js"></script>
+  <script src="ai.js"></script>
+  <script src="ui.js"></script>
+
+  <script>
+    // ── Service worker registration ───────────────────────────────
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+
+    // ── Home screen install prompt ────────────────────────────────
+    let deferredInstallPrompt = null;
+    const installBanner = document.getElementById('install-banner');
+    const btnInstall    = document.getElementById('btn-install');
+    const btnDismiss    = document.getElementById('btn-install-dismiss');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      installBanner.hidden = false;
+    });
+
+    btnInstall.addEventListener('click', async () => {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      installBanner.hidden = true;
+    });
+
+    btnDismiss.addEventListener('click', () => {
+      installBanner.hidden = true;
+      deferredInstallPrompt = null;
+    });
+
+    window.addEventListener('appinstalled', () => {
+      installBanner.hidden = true;
+      deferredInstallPrompt = null;
+    });
+  </script>
+
+</body>
+</html>
