@@ -2,8 +2,6 @@
 
 A mobile-first PWA for tracking and understanding your plants — powered by Claude AI.
 
-**[Live Demo →](https://plant-companion.netlify.app)**
-
 ---
 
 ## Screenshots
