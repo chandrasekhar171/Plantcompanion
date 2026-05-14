@@ -9,12 +9,13 @@ A mobile-first PWA for tracking and understanding your plants — powered by Cla
 ## What it does
 
 - **Identify plants by photo** — take a photo or upload from gallery, Claude vision identifies the species instantly
+- **Retry identification** — if the AI guess is wrong, retry with the same photo (excludes the previous guess) or swap to a new photo entirely
+- **Smart tag suggestions** — after identification, Claude suggests relevant plant-type tags; pick from 10 predefined categories to sharpen every AI response
 - **Journal your care** — log watering, feeding, pruning, and repotting with optional photos and notes
 - **AI health scoring** — every journal entry gets a health score (1–10) and personalised care insights
 - **Health graph** — visualise your plant's health trend over time
-- **Chat with your plant** — ask questions about care, problems, or anything else; the AI has full context of your plant's history
+- **Chat with your plant** — ask anything about care, problems, or pests; the AI has full visual context (profile photo + recent journal photos) and the complete journal history
 - **Photo timeline** — chronological photo history of each plant
-- **Plant type tags** — 10 predefined tags (Succulents & Cacti, Tropicals, Orchids, etc.) that sharpen every AI response
 - **Works offline** — full PWA with service worker caching; install it to your home screen
 
 ---
@@ -26,6 +27,7 @@ A mobile-first PWA for tracking and understanding your plants — powered by Cla
 - Chart.js for health graphs
 - localStorage for all data — no backend, no login
 - Service worker for offline support and PWA install
+- Google Analytics 4 for view-level usage tracking (each in-app screen is tracked as a named `page_view` event)
 
 ---
 
@@ -67,7 +69,7 @@ Neomorphic design system on a sage green gradient (`#eaf0e8 → #7a9e76`). All s
 | Version | Status |
 |---|---|
 | V1 — Core PWA (identify, journal, health graph, care tips) | ✅ Live |
-| V2 — Chat, photo timeline, tags, journal history, re-identification | ✅ Live |
+| V2 — Chat with visual context, photo timeline, tags, re-identification, GA analytics | ✅ Live |
 | V3 — Native mobile app (React Native or Capacitor) | Planned |
 
 ---

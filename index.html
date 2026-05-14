@@ -11,6 +11,15 @@
   <link rel="manifest" href="manifest.json" />
   <title>Plant Companion</title>
 
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7E62RCEKD4"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7E62RCEKD4');
+  </script>
+
   <style>
     /* ── Display font ──────────────────────────────────────────── */
     @font-face {
@@ -494,16 +503,9 @@
       cursor: pointer;
     }
 
-    /* Journal photo area: invisible input covers the whole area for reliable tap on iOS */
+    /* Journal photo tap handled via Change Photo sheet — input hidden */
     #journal-photo-area input[type="file"] {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      cursor: pointer;
-      z-index: 1;
-      font-size: 0;
+      display: none;
     }
 
     .photo-placeholder {
@@ -1995,12 +1997,14 @@
 
     .reidentify__actions {
       display: flex;
-      gap: 12px;
+      gap: 10px;
+      align-items: stretch;
       margin-top: 8px;
     }
 
-    .reidentify__actions .nm-btn        { flex: 1; }
-    .reidentify__actions .nm-btn-primary { flex: 2; }
+    #btn-reidentify-cancel  { flex: 1; }
+    #btn-reidentify-retry   { width: 130px; min-width: 130px; flex: none; }
+    #btn-reidentify-confirm { flex: 1; }
 
   </style>
 </head>
@@ -2589,7 +2593,8 @@
       </div>
       <div class="reidentify__actions">
         <button class="nm-btn" id="btn-reidentify-cancel" type="button">Cancel</button>
-        <button class="nm-btn nm-btn-primary" id="btn-reidentify-confirm" type="button">Confirm &amp; Update</button>
+        <button class="nm-btn" id="btn-reidentify-retry" type="button">Retry</button>
+        <button class="nm-btn nm-btn-primary" id="btn-reidentify-confirm" type="button">Update</button>
       </div>
     </div>
 

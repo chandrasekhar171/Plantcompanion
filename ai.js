@@ -238,7 +238,52 @@ const AI = (() => {
       `Give practical, specific advice. Be concise and conversational.` +
       journalContext;
 
+    // If the plant has a profile photo, prepend a synthetic exchange so the
+    // model has visual context of the plant on every API call.
+    const visualContext = [];
+    if (plant.photoBase64) {
+      const [header, imgData] = plant.photoBase64.split(',');
+      const mediaType = header.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
+      visualContext.push(
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: imgData } },
+            { type: 'text',  text: `This is my ${plant.commonName}.` },
+          ],
+        },
+        { role: 'assistant', content: `Got it — I can see your ${plant.commonName}. What would you like to know?` }
+      );
+    }
+
+    // Append up to 3 recent journal photos oldest-to-newest so the model sees
+    // chronological progression before the actual conversation.
+    const journalPhotos = [...journalEntries]
+      .filter(e => e.photoBase64)
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 3)
+      .reverse();
+
+    for (const entry of journalPhotos) {
+      const [hdr, jpgData] = entry.photoBase64.split(',');
+      const mt = hdr.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
+      const dateStr = new Date(entry.timestamp).toLocaleDateString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric',
+      });
+      visualContext.push(
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mt, data: jpgData } },
+            { type: 'text',  text: `Journal photo from ${dateStr}` },
+          ],
+        },
+        { role: 'assistant', content: 'I can see this journal photo.' }
+      );
+    }
+
     const messages = [
+      ...visualContext,
       ...conversationHistory.slice(-20).map(m => ({ role: m.role, content: m.content })),
       { role: 'user', content: newMessage },
     ];

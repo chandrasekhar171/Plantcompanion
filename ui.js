@@ -242,6 +242,11 @@ const UI = (() => {
     requestAnimationFrame(() => { document.getElementById('page-root').scrollTop = 0; });
     $title.style.visibility = '';
 
+    // Track view as a page_view event in Google Analytics
+    if (typeof gtag === 'function') {
+      gtag('event', 'page_view', { page_title: name, page_path: '/' + name });
+    }
+
     if (name === 'onboarding') {
       backDest                 = 'my-plants';
       setTitle('Plant Companion');
@@ -740,6 +745,26 @@ const UI = (() => {
     document.getElementById('reidentify-sheet').classList.remove('open');
     document.getElementById('reidentify-backdrop').classList.remove('open');
     reidentifyPending = null;
+  }
+
+  async function handleReidentifyRetry() {
+    if (!reidentifyPending) return;
+    const excludeName = document.getElementById('reidentify-common-name').value.trim() || null;
+    const retryBtn    = document.getElementById('btn-reidentify-retry');
+    retryBtn.disabled = true;
+    retryBtn.textContent = 'Identifying…';
+
+    try {
+      const { commonName, speciesName, suggestedTags } = await AI.identifyPlant(reidentifyPending.photoBase64, excludeName);
+      reidentifyPending = { ...reidentifyPending, commonName, speciesName, suggestedTags: suggestedTags || [] };
+      document.getElementById('reidentify-common-name').value  = commonName;
+      document.getElementById('reidentify-species-name').value = speciesName;
+    } catch {
+      showToast('Could not identify — try again');
+    } finally {
+      retryBtn.disabled    = false;
+      retryBtn.textContent = 'Retry';
+    }
   }
 
   function handleReidentifyConfirm() {
@@ -1513,8 +1538,24 @@ const UI = (() => {
             .addEventListener('click', handleSaveJournalEntry);
     document.getElementById('btn-journal-cancel')
             .addEventListener('click', () => showView('plant'));
-    document.getElementById('journal-photo-input')
-            .addEventListener('change', handleJournalPhotoChange);
+    document.getElementById('journal-photo-area')
+            .addEventListener('click', () => {
+              openChangePhotoSheet(async (file) => {
+                const preview     = document.getElementById('journal-photo-preview');
+                const placeholder = document.getElementById('journal-photo-placeholder');
+                journalPhotoBase64 = null;
+                preview.style.display     = 'none';
+                placeholder.style.display = '';
+                try {
+                  journalPhotoBase64    = await compressImage(file);
+                  preview.src           = journalPhotoBase64;
+                  preview.style.display = 'block';
+                  placeholder.style.display = 'none';
+                } catch {
+                  showToast('Could not load photo — try a different image');
+                }
+              });
+            });
 
     // Settings
     $gearBtn.addEventListener('click', openSettings);
@@ -1653,6 +1694,8 @@ const UI = (() => {
             .addEventListener('click', closeReidentifySheet);
     document.getElementById('btn-reidentify-cancel')
             .addEventListener('click', closeReidentifySheet);
+    document.getElementById('btn-reidentify-retry')
+            .addEventListener('click', handleReidentifyRetry);
     document.getElementById('btn-reidentify-confirm')
             .addEventListener('click', handleReidentifyConfirm);
 

@@ -1,4 +1,4 @@
-const CACHE = 'plant-companion-v5';
+const CACHE = 'plant-companion-v6';
 
 const APP_SHELL = [
   '/',
