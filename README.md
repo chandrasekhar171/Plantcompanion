@@ -6,6 +6,21 @@ A mobile-first PWA for tracking and understanding your plants — powered by Cla
 
 ---
 
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/screen-4.png" width="260"/><br/><sub>Add Plant — AI identification</sub></td>
+    <td align="center"><img src="assets/screen-1.png" width="260"/><br/><sub>My Plants</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/screen-3.png" width="260"/><br/><sub>Chat with your plant</sub></td>
+    <td align="center"><img src="assets/screen-2.png" width="260"/><br/><sub>Plant Detail — health graph &amp; care tips</sub></td>
+  </tr>
+</table>
+
+---
+
 ## What it does
 
 - **Identify plants by photo** — take a photo or upload from gallery, Claude vision identifies the species instantly
